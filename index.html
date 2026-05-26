@@ -1,0 +1,868 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Marc's Dash</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Epilogue:ital,wght@0,300;0,400;0,500;1,300&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
+:root{
+  --ink:#0A0A0F;--ink2:#1E1E2A;--ink3:#3A3A4A;
+  --fog:#F0EFE8;--fog2:#E6E4DC;--fog3:#D8D5CB;
+  --card:#FAFAF7;--nav:#FAFAF7;
+  --border:rgba(10,10,15,.08);--border-md:rgba(10,10,15,.15);
+  --text:#0A0A0F;--text2:#3A3A4A;--text3:#8A8A9A;
+  --gold:#C9A84C;--gold-dim:rgba(201,168,76,.12);--gold-border:rgba(201,168,76,.35);
+  --sage:#4A7C59;--sage-dim:rgba(74,124,89,.10);--sage-border:rgba(74,124,89,.30);
+  --rust:#C45C3A;--rust-dim:rgba(196,92,58,.10);--rust-border:rgba(196,92,58,.28);
+  --slate:#4A5568;--slate-dim:rgba(74,85,104,.10);--slate-border:rgba(74,85,104,.28);
+  --blue:#3B6CB7;--blue-dim:rgba(59,108,183,.10);--blue-border:rgba(59,108,183,.28);
+  --accent:var(--gold);
+  --font-display:'Syne',sans-serif;
+  --font-body:'Epilogue',sans-serif;
+  --font-mono:'JetBrains Mono',monospace;
+  --r:6px;--rlg:10px;--rsm:3px;
+}
+body{background:var(--fog);color:var(--text);font-family:var(--font-body);font-size:14px;line-height:1.6;min-height:100vh}
+::-webkit-scrollbar{width:3px;height:3px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--fog3);border-radius:3px}
+
+/* ── Shell ── */
+.shell{display:flex;min-height:100vh}
+.sidebar{width:230px;flex-shrink:0;background:var(--nav);border-right:1px solid var(--border);padding:28px 0;position:sticky;top:0;height:100vh;overflow-y:auto;display:flex;flex-direction:column}
+.main{flex:1;min-width:0;display:flex;flex-direction:column}
+
+/* ── Sidebar ── */
+.sb-logo{padding:0 22px 24px;border-bottom:1px solid var(--border);margin-bottom:18px}
+.sb-monogram{width:38px;height:38px;background:var(--ink);border-radius:4px;display:flex;align-items:center;justify-content:center;color:var(--gold);font-family:var(--font-display);font-size:15px;font-weight:800;letter-spacing:.5px;flex-shrink:0;position:relative;overflow:hidden}
+.sb-monogram::after{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(201,168,76,.2) 0%,transparent 60%)}
+.sb-name{font-family:var(--font-display);font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:var(--ink);line-height:1;margin-top:1px}
+.sb-tagline{font-family:var(--font-mono);font-size:8px;color:var(--gold);margin-top:3px;letter-spacing:.08em;text-transform:uppercase}
+
+.sb-group{padding:0 14px;margin-bottom:4px}
+.sb-group-label{font-family:var(--font-mono);font-size:8px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);padding:0 8px;margin-bottom:4px;margin-top:14px}
+
+.nav-item{display:flex;align-items:center;gap:9px;padding:8px 8px;border-radius:var(--rsm);font-size:12.5px;font-family:var(--font-body);color:var(--text2);cursor:pointer;transition:all .15s;border:1px solid transparent;background:none;width:100%;text-align:left;letter-spacing:.01em}
+.nav-item i{font-size:15px;flex-shrink:0;opacity:.7}
+.nav-item:hover{background:var(--fog2);color:var(--text)}
+.nav-item.active{background:var(--ink);color:var(--gold);border-color:transparent}
+.nav-item.active i{opacity:1}
+.nav-badge{margin-left:auto;background:var(--gold);color:var(--ink);font-family:var(--font-mono);font-size:8px;font-weight:700;padding:1px 6px;border-radius:10px;min-width:16px;text-align:center}
+
+.sb-footer{margin-top:auto;padding:16px 22px;border-top:1px solid var(--border)}
+.sb-avatar{width:30px;height:30px;border-radius:50%;background:var(--ink);border:2px solid var(--gold-border);color:var(--gold);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;font-family:var(--font-display);flex-shrink:0}
+
+/* ── Topbar ── */
+.topbar{background:var(--nav);border-bottom:1px solid var(--border);padding:14px 28px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-shrink:0;position:relative}
+.topbar::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--gold) 0%,transparent 60%)}
+.tb-title{font-family:var(--font-display);font-size:18px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:var(--ink)}
+.tb-date{font-family:var(--font-mono);font-size:10px;color:var(--text3)}
+
+/* ── Buttons ── */
+.btn{font-family:var(--font-mono);font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;padding:7px 14px;border-radius:var(--rsm);border:1px solid var(--border-md);background:transparent;color:var(--text2);cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.btn:hover{background:var(--fog2);color:var(--text);border-color:var(--border-md)}
+.btn i{font-size:13px}
+.btn-primary{background:var(--ink);color:var(--gold);border-color:var(--ink);font-weight:700}
+.btn-primary:hover{background:var(--ink2);border-color:var(--ink2);color:var(--gold)}
+.btn-primary:disabled{opacity:.4;cursor:not-allowed}
+.btn-gold{background:var(--gold);color:var(--ink);border-color:var(--gold);font-weight:700}
+.btn-gold:hover{background:#b8933e;border-color:#b8933e;color:var(--ink)}
+.btn-export{background:var(--fog2);color:var(--text2);border:1px solid var(--border-md);position:relative}
+.btn-export:hover{background:var(--fog3)}
+
+/* ── Export dropdown ── */
+.export-wrap{position:relative;display:inline-block}
+.export-menu{display:none;position:absolute;right:0;top:calc(100% + 6px);background:var(--card);border:1px solid var(--border-md);border-radius:var(--r);min-width:180px;box-shadow:0 8px 24px rgba(0,0,0,.12);z-index:200;overflow:hidden}
+.export-menu.open{display:block}
+.export-menu-item{display:flex;align-items:center;gap:10px;padding:10px 14px;font-size:12px;font-family:var(--font-body);color:var(--text2);cursor:pointer;transition:background .12s;border-bottom:1px solid var(--border)}
+.export-menu-item:last-child{border-bottom:none}
+.export-menu-item:hover{background:var(--fog2);color:var(--text)}
+.export-menu-item i{font-size:15px;color:var(--text3)}
+.export-menu-label{font-weight:500}
+.export-menu-sub{font-family:var(--font-mono);font-size:9px;color:var(--text3);margin-top:1px}
+
+/* ── Content ── */
+.content{flex:1;overflow-y:auto;padding:24px 28px}
+.section{display:none}.section.active{display:block}
+
+/* ── KPIs ── */
+.kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(148px,1fr));gap:10px;margin-bottom:20px}
+.kpi{background:var(--card);border:1px solid var(--border);border-radius:var(--rlg);padding:16px;position:relative;overflow:hidden}
+.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--gold)}
+.kpi.pos::before{background:var(--sage)}
+.kpi.neg::before{background:var(--rust)}
+.kpi.warn::before{background:#d97706}
+.kpi-label{font-family:var(--font-mono);font-size:8.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--text3);margin-bottom:8px}
+.kpi-value{font-family:var(--font-display);font-size:28px;font-weight:800;line-height:1;color:var(--ink);margin-bottom:4px;letter-spacing:-1px}
+.kpi-delta{font-size:11px;color:var(--text3);font-family:var(--font-mono)}
+.kpi-delta.up{color:var(--sage)}.kpi-delta.dn{color:var(--rust)}
+
+/* ── Cards ── */
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--rlg);overflow:hidden;margin-bottom:16px;box-shadow:0 1px 3px rgba(0,0,0,.03)}
+.card-header{padding:11px 18px;border-bottom:1px solid var(--border);background:var(--fog);display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.card-title{font-family:var(--font-display);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--ink);display:flex;align-items:center;gap:7px}
+.card-title i{font-size:14px;color:var(--gold)}
+.card-body{padding:18px}
+
+/* ── Prompt ── */
+.prompt-wrap{border:1px solid var(--border-md);border-radius:var(--r);overflow:hidden;margin-bottom:10px;transition:border-color .15s}
+.prompt-wrap:focus-within{border-color:var(--gold)}
+.prompt-wrap textarea{width:100%;display:block;background:transparent;border:none;outline:none;font-size:13px;font-family:var(--font-body);color:var(--text);resize:none;padding:12px 14px;min-height:72px;line-height:1.6}
+.prompt-wrap textarea::placeholder{color:var(--text3)}
+.prompt-footer{display:flex;align-items:center;justify-content:space-between;padding:7px 12px;background:var(--fog2);border-top:1px solid var(--border)}
+
+/* ── Chips ── */
+.chips{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:12px}
+.chip{font-family:var(--font-mono);font-size:9px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--text3);border:1px solid var(--border-md);background:var(--fog);padding:4px 10px;border-radius:2px;cursor:pointer;white-space:nowrap;transition:all .12s}
+.chip:hover{background:var(--gold-dim);color:var(--ink);border-color:var(--gold-border)}
+
+/* ── Findings ── */
+.findings-box{background:var(--fog);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;font-size:13px;color:var(--text2);min-height:90px;line-height:1.85;white-space:pre-wrap;font-family:var(--font-body)}
+
+/* ── Follow-up ── */
+.followup-wrap{border:1px solid var(--gold-border);border-radius:var(--r);overflow:hidden;background:var(--gold-dim);margin-top:12px}
+.followup-wrap textarea{width:100%;display:block;background:transparent;border:none;outline:none;font-size:13px;font-family:var(--font-body);color:var(--text);resize:none;padding:10px 14px;min-height:52px;line-height:1.6}
+.followup-wrap textarea::placeholder{color:var(--text3)}
+.followup-footer{display:flex;align-items:center;justify-content:space-between;padding:6px 12px;background:rgba(201,168,76,.08);border-top:1px solid var(--gold-border)}
+.followup-label{font-family:var(--font-mono);font-size:8.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--gold)}
+
+/* ── Save banner ── */
+.save-banner{background:var(--card);border:1px solid var(--sage-border);border-left:3px solid var(--sage);border-radius:var(--r);padding:12px 16px;margin-top:12px;display:none;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.save-banner.show{display:flex}
+.save-banner-text{font-size:12.5px;color:var(--text2);display:flex;align-items:center;gap:8px;font-family:var(--font-body)}
+.save-banner-text i{color:var(--sage);font-size:15px}
+
+/* ── Dynamic charts ── */
+.dynamic-charts{margin-bottom:16px}
+.chart-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.chart-grid.single{grid-template-columns:1fr}
+.chart-card{background:var(--card);border:1px solid var(--border);border-radius:var(--rlg);padding:14px 16px}
+.chart-card-title{font-family:var(--font-display);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;color:var(--text2);margin-bottom:12px}
+.chart-section-label{font-family:var(--font-mono);font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--gold);padding:5px 0 8px;border-bottom:1px solid var(--border);margin-bottom:12px}
+.legend{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px;font-size:10px;color:var(--text3);font-family:var(--font-mono)}
+.legend-item{display:flex;align-items:center;gap:4px}
+.legend-swatch{width:8px;height:8px;border-radius:1px;flex-shrink:0}
+
+/* ── Tables ── */
+.dl-table{width:100%;border-collapse:collapse}
+.dl-table th{text-align:left;font-family:var(--font-mono);font-size:8.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--fog);background:var(--ink);padding:9px 12px;white-space:nowrap}
+.dl-table td{padding:9px 12px;border-bottom:1px solid var(--border);vertical-align:middle;font-size:12.5px;color:var(--text2)}
+.dl-table tr:last-child td{border-bottom:none}
+.dl-table tr:hover td{background:var(--fog2)}
+.num{font-family:var(--font-mono);font-size:11.5px}
+.bar-wrap{display:flex;align-items:center;gap:8px}
+.bar-track{width:64px;height:3px;background:var(--fog3);border-radius:2px;overflow:hidden}
+.bar-fill{height:3px;border-radius:2px;transition:width .5s ease}
+.bar-pct{font-family:var(--font-mono);font-size:9px;color:var(--text3)}
+.pill{display:inline-block;font-family:var(--font-mono);font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;padding:2px 7px;border-radius:2px;border:1px solid;white-space:nowrap}
+.pill-green{background:var(--sage-dim);color:#2d5a3d;border-color:var(--sage-border)}
+.pill-amber{background:rgba(217,119,6,.1);color:#7a4708;border-color:rgba(217,119,6,.3)}
+.pill-red{background:var(--rust-dim);color:#8b2f1a;border-color:var(--rust-border)}
+.pill-slate{background:var(--slate-dim);color:#2d3748;border-color:var(--slate-border)}
+
+/* ── Upload ── */
+.upload-zone{border:2px dashed var(--border-md);border-radius:var(--r);padding:2.5rem;text-align:center;cursor:pointer;transition:all .2s;position:relative;overflow:hidden;background:var(--fog)}
+.upload-zone:hover,.upload-zone.drag{border-color:var(--gold);background:var(--gold-dim)}
+.upload-zone input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.upload-zone-icon{font-size:30px;color:var(--text3);margin-bottom:8px}
+.upload-title{font-family:var(--font-display);font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text2);margin-bottom:4px}
+.upload-sub{font-family:var(--font-mono);font-size:9px;color:var(--text3)}
+.file-badge{display:none;background:var(--sage-dim);border:1px solid var(--sage-border);border-radius:var(--rsm);padding:8px 14px;margin-top:10px;font-family:var(--font-mono);font-size:10px;color:var(--sage);align-items:center;gap:8px}
+.file-badge.show{display:flex}
+
+/* ── Notes ── */
+.notes-area{width:100%;background:transparent;border:none;outline:none;font-size:13px;font-family:var(--font-body);color:var(--text);resize:vertical;min-height:90px;line-height:1.7}
+.notes-area::placeholder{color:var(--text3)}
+
+/* ── History ── */
+.history-entry{background:var(--card);border:1px solid var(--border);border-radius:var(--rlg);margin-bottom:10px;overflow:hidden}
+.history-entry-header{padding:12px 18px;background:var(--fog2);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:10px;cursor:pointer;transition:background .12s}
+.history-entry-header:hover{background:var(--fog3)}
+.history-entry-title{font-family:var(--font-display);font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--ink)}
+.history-entry-meta{font-family:var(--font-mono);font-size:9px;color:var(--text3);display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:2px}
+.history-entry-body{display:none;padding:16px 18px;border-top:1px solid var(--border)}
+.history-entry-body.open{display:block}
+.history-entry-text{font-size:13px;color:var(--text2);white-space:pre-wrap;line-height:1.85;font-family:var(--font-body)}
+
+/* ── Alert ── */
+.alert-card{background:var(--rust-dim);border:1px solid var(--rust-border);border-left:3px solid var(--rust);border-radius:var(--r);padding:12px 16px;margin-bottom:14px}
+.alert-title{font-family:var(--font-mono);font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--rust);margin-bottom:6px;display:flex;align-items:center;gap:6px}
+
+/* ── Standup ── */
+.standup-empty{text-align:center;padding:4rem 2rem}
+.standup-empty i{font-size:40px;color:var(--text3);display:block;margin-bottom:14px;opacity:.25}
+.standup-empty h3{font-family:var(--font-display);font-size:17px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--text2);margin-bottom:8px}
+.standup-empty p{font-size:13px;color:var(--text3);max-width:340px;margin:0 auto 20px;line-height:1.7;font-family:var(--font-body)}
+
+/* ── Spinner / Toast ── */
+.spinner{display:inline-block;width:13px;height:13px;border:2px solid rgba(10,10,15,.1);border-top-color:var(--gold);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
+@keyframes spin{to{transform:rotate(360deg)}}
+#toast{position:fixed;bottom:20px;right:20px;background:var(--ink);color:var(--gold);font-family:var(--font-mono);font-size:11px;padding:10px 16px;border-radius:var(--rsm);opacity:0;transform:translateY(8px);transition:all .2s;pointer-events:none;z-index:999;letter-spacing:.02em;border:1px solid var(--gold-border)}
+#toast.show{opacity:1;transform:translateY(0)}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.section.active>*{animation:fadeUp .2s ease both}
+.section.active>*:nth-child(2){animation-delay:.05s}
+.section.active>*:nth-child(3){animation-delay:.1s}
+.section.active>*:nth-child(4){animation-delay:.15s}
+@media(max-width:768px){.sidebar{display:none}.content{padding:16px}.chart-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="shell">
+
+<!-- ── Sidebar ── -->
+<aside class="sidebar">
+  <div class="sb-logo">
+    <div style="display:flex;align-items:center;gap:11px">
+      <div class="sb-monogram">M</div>
+      <div>
+        <div class="sb-name">Marc's Dash</div>
+        <div class="sb-tagline">QM Media · Centerfield</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sb-group">
+    <div class="sb-group-label">Main</div>
+    <button class="nav-item active" onclick="switchTab('analysis',this)"><i class="ti ti-chart-bar"></i> Analysis</button>
+    <button class="nav-item" onclick="switchTab('upload',this)"><i class="ti ti-table-import"></i> Data Upload</button>
+    <button class="nav-item" onclick="switchTab('standup',this)"><i class="ti ti-presentation-analytics"></i> Standups</button>
+    <button class="nav-item" onclick="switchTab('history',this)"><i class="ti ti-history"></i> History <span class="nav-badge" id="history-badge" style="display:none">0</span></button>
+    <div class="sb-group-label" style="margin-top:16px">Quick Actions</div>
+    <button class="nav-item" onclick="loadSampleFindings()"><i class="ti ti-database-import"></i> Load Sample Data</button>
+    <button class="nav-item" onclick="pushToStandup()"><i class="ti ti-arrow-right"></i> Push to Standup</button>
+    <button class="nav-item" onclick="toggleExportMenu()"><i class="ti ti-download"></i> Export Results</button>
+  </div>
+
+  <div class="sb-footer">
+    <div style="display:flex;align-items:center;gap:10px">
+      <div class="sb-avatar">MB</div>
+      <div>
+        <div style="font-weight:600;color:var(--text2);font-size:11px;font-family:var(--font-display);text-transform:uppercase;letter-spacing:.5px">Marc</div>
+        <div style="color:var(--text3);font-size:8.5px;font-family:var(--font-mono)">Centerfield Media</div>
+      </div>
+    </div>
+  </div>
+</aside>
+
+<!-- ── Main ── -->
+<div class="main">
+  <header class="topbar">
+    <div class="tb-title" id="page-title">Analysis</div>
+    <div style="display:flex;align-items:center;gap:10px">
+      <span class="tb-date" id="live-date"></span>
+      <span id="notion-indicator" style="display:none;font-family:var(--font-mono);font-size:9px;transition:color .3s"></span>
+
+      <!-- Export button + dropdown -->
+      <div class="export-wrap" id="export-wrap">
+        <button class="btn btn-export" onclick="toggleExportMenu()" id="export-btn">
+          <i class="ti ti-download"></i> Export <i class="ti ti-chevron-down" style="font-size:11px"></i>
+        </button>
+        <div class="export-menu" id="export-menu">
+          <div class="export-menu-item" onclick="doExport('xlsx')">
+            <i class="ti ti-file-spreadsheet"></i>
+            <div><div class="export-menu-label">Excel (.xlsx)</div><div class="export-menu-sub">Full data + findings table</div></div>
+          </div>
+          <div class="export-menu-item" onclick="doExport('pdf')">
+            <i class="ti ti-file-type-pdf"></i>
+            <div><div class="export-menu-label">PDF</div><div class="export-menu-sub">Print-ready report</div></div>
+          </div>
+          <div class="export-menu-item" onclick="doExport('pptx')">
+            <i class="ti ti-presentation"></i>
+            <div><div class="export-menu-label">PowerPoint (.pptx)</div><div class="export-menu-sub">Slide-ready summary</div></div>
+          </div>
+          <div class="export-menu-item" onclick="doExport('csv')">
+            <i class="ti ti-file-text"></i>
+            <div><div class="export-menu-label">CSV</div><div class="export-menu-sub">Raw data export</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="content">
+
+    <!-- ══ ANALYSIS ══ -->
+    <div class="section active" id="tab-analysis">
+
+      <div class="kpi-row">
+        <div class="kpi"><div class="kpi-label">Total Pings</div><div class="kpi-value" id="m-pings">—</div><div class="kpi-delta" id="d-pings">Load data below</div></div>
+        <div class="kpi warn"><div class="kpi-label">Expected Bids</div><div class="kpi-value" id="m-exp">—</div><div class="kpi-delta" id="d-exp">—</div></div>
+        <div class="kpi neg"><div class="kpi-label">Actual Bids</div><div class="kpi-value" id="m-bids">—</div><div class="kpi-delta dn" id="d-bids">—</div></div>
+        <div class="kpi neg"><div class="kpi-label">Calls Missed</div><div class="kpi-value" id="m-missed">—</div><div class="kpi-delta dn" id="d-missed">—</div></div>
+      </div>
+
+      <div class="alert-card" id="main-alert" style="display:none">
+        <div class="alert-title"><i class="ti ti-alert-triangle"></i> <span id="alert-title-text">Active Alert</span></div>
+        <div style="font-size:12.5px;color:#6b2413;line-height:1.7" id="alert-body-text"></div>
+      </div>
+
+      <!-- Dynamic chart area -->
+      <div class="dynamic-charts" id="dynamic-charts">
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--rlg);padding:2.5rem;text-align:center;color:var(--text3);font-family:var(--font-mono);font-size:10px;text-transform:uppercase;letter-spacing:.06em">
+          Upload a file or run an analysis — charts will appear here
+        </div>
+      </div>
+
+      <!-- Findings -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title"><i class="ti ti-report-analytics"></i> Findings &amp; Takeaways</span>
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <span id="analysis-source-label" style="font-family:var(--font-mono);font-size:9px;color:var(--text3)"></span>
+            <button class="btn" onclick="pushToStandup()"><i class="ti ti-arrow-right"></i> Push to Standup</button>
+            <button class="btn" onclick="clearFindings()"><i class="ti ti-trash"></i> Clear</button>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="findings-box" id="findings-display">Run an analysis or upload a file to see findings here.</div>
+          <div class="followup-wrap" id="followup-area" style="display:none">
+            <textarea id="followup-input" placeholder="Add a follow-up instruction — e.g. 'Break this down by state' or 'Compare top 5 sources'…"></textarea>
+            <div class="followup-footer">
+              <span class="followup-label"><i class="ti ti-corner-down-right" style="font-size:11px;margin-right:4px"></i>Follow-up on this analysis</span>
+              <button class="btn btn-primary" onclick="runFollowUp()" id="followup-btn"><i class="ti ti-send"></i> Send</button>
+            </div>
+          </div>
+          <div class="save-banner" id="save-banner">
+            <div class="save-banner-text"><i class="ti ti-device-floppy"></i> Save this analysis to History &amp; Notion?</div>
+            <div style="display:flex;gap:8px">
+              <button class="btn btn-gold" onclick="confirmSave()"><i class="ti ti-check"></i> Save</button>
+              <button class="btn" onclick="dismissSave()"><i class="ti ti-x"></i> Dismiss</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Run analysis -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title"><i class="ti ti-brain"></i> Run Analysis with Claude</span>
+          <span style="font-family:var(--font-mono);font-size:9px;color:var(--sage)">● Live</span>
+        </div>
+        <div class="card-body">
+          <div class="chips">
+            <button class="chip" onclick="setPrompt('Analyze channel performance and flag any CPL outliers or pacing issues. ')">Channel performance</button>
+            <button class="chip" onclick="setPrompt('Compare spend vs leads this week vs last week and identify the drivers. ')">WoW comparison</button>
+            <button class="chip" onclick="setPrompt('Which channels have the best ROI and which should we cut or scale? ')">Budget allocation</button>
+            <button class="chip" onclick="setPrompt('Summarize media performance for the week and surface key takeaways. ')">Weekly summary</button>
+            <button class="chip" onclick="setPrompt('Identify sources where BF setting does not match actual bid rate. ')">BF compliance</button>
+            <button class="chip" onclick="setPrompt('What are the top 3 issues I should address this week and why? ')">Top issues</button>
+          </div>
+          <div class="prompt-wrap">
+            <textarea id="analysis-input" placeholder="Ask a question, request a comparison, or give instructions…" oninput="updateCharCount()"></textarea>
+            <div class="prompt-footer">
+              <span style="font-family:var(--font-mono);font-size:9px;color:var(--text3)" id="char-count">0 chars</span>
+              <button class="btn btn-primary" id="run-btn" onclick="runAnalysis()"><i class="ti ti-player-play"></i> Run Analysis</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Notes -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title"><i class="ti ti-pencil"></i> Notes &amp; Commentary</span>
+          <div style="display:flex;gap:6px">
+            <button class="btn" onclick="saveNotes()"><i class="ti ti-device-floppy"></i> Save</button>
+            <button class="btn" onclick="pushToStandup()"><i class="ti ti-arrow-right"></i> Push to Standup</button>
+          </div>
+        </div>
+        <div class="card-body">
+          <textarea class="notes-area" id="marc-notes" placeholder="Add context, flags, or recommendations…"></textarea>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding-top:10px;border-top:1px solid var(--border);margin-top:10px">
+            <span style="font-family:var(--font-mono);font-size:8.5px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em" id="notes-status">Unsaved</span>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /analysis -->
+
+    <!-- ══ DATA UPLOAD ══ -->
+    <div class="section" id="tab-upload">
+      <div class="card">
+        <div class="card-header"><span class="card-title"><i class="ti ti-table-import"></i> Upload Media Data</span></div>
+        <div class="card-body">
+          <p style="font-size:12.5px;color:var(--text2);margin-bottom:16px;line-height:1.7;font-family:var(--font-body)">Upload an Excel (.xlsx) or CSV. Claude will analyze it and results will appear in the <strong>Analysis tab</strong> with charts. You'll be prompted to save.</p>
+          <div class="upload-zone" id="upload-zone" ondragover="handleDrag(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event)">
+            <input type="file" accept=".xlsx,.xls,.csv" id="file-input" onchange="handleFile(event)">
+            <div class="upload-zone-icon"><i class="ti ti-file-spreadsheet"></i></div>
+            <div class="upload-title">Drop Excel or CSV here</div>
+            <div class="upload-sub">or click to browse — .xlsx / .xls / .csv</div>
+          </div>
+          <div class="file-badge" id="upload-badge"><i class="ti ti-circle-check" style="font-size:15px"></i><span id="upload-filename">file loaded</span></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title"><i class="ti ti-message-dots"></i> Analysis Instructions</span></div>
+        <div class="card-body">
+          <div class="chips">
+            <button class="chip" onclick="setUploadPrompt('Analyze channel performance, flag CPL outliers, identify pacing issues. ')">Channel audit</button>
+            <button class="chip" onclick="setUploadPrompt('Identify sources where BF setting does not match actual bid rate and quantify the gap. ')">BF compliance</button>
+            <button class="chip" onclick="setUploadPrompt('Identify trends, anomalies, and week-over-week changes. ')">Trends &amp; anomalies</button>
+            <button class="chip" onclick="setUploadPrompt('Which sources should be prioritized for fixing based on volume and gap severity? ')">Fix priority</button>
+            <button class="chip" onclick="setUploadPrompt('Build a budget reallocation recommendation based on performance data. ')">Budget reco</button>
+          </div>
+          <div class="prompt-wrap">
+            <textarea id="upload-instructions" placeholder="Describe what you want Claude to analyze in this file…" style="min-height:80px"></textarea>
+            <div class="prompt-footer">
+              <span style="font-family:var(--font-mono);font-size:9px;color:var(--text3)" id="file-status">No file loaded yet</span>
+              <button class="btn btn-primary" id="upload-run-btn" onclick="runUploadAnalysis()"><i class="ti ti-player-play"></i> Analyze File</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="card" id="upload-preview-card" style="display:none">
+        <div class="card-header"><span class="card-title"><i class="ti ti-check"></i> Analysis Complete</span>
+          <button class="btn btn-primary" onclick="switchTab('analysis',document.querySelectorAll('.nav-item')[0])"><i class="ti ti-arrow-right"></i> View in Analysis Tab</button>
+        </div>
+        <div class="card-body" style="font-family:var(--font-mono);font-size:10px;color:var(--sage)">✓ Results in Analysis tab with charts. You will be prompted to save.</div>
+      </div>
+    </div>
+
+    <!-- ══ STANDUPS ══ -->
+    <div class="section" id="tab-standup">
+      <div class="card" id="standup-content-card" style="display:none">
+        <div class="card-header"><span class="card-title"><i class="ti ti-notes"></i> This Week's Standup</span>
+          <button class="btn" onclick="doExport('pdf')"><i class="ti ti-printer"></i> Export PDF</button>
+        </div>
+        <div class="card-body"><div class="findings-box" id="standup-content"></div></div>
+      </div>
+      <div class="card">
+        <div class="standup-empty">
+          <i class="ti ti-presentation-analytics"></i>
+          <h3>Weekly Standup</h3>
+          <p>Push findings from the Analysis tab to populate this section, or build a custom standup layout here.</p>
+          <button class="btn btn-primary" onclick="alert('Describe the standup layout you want and we will build it out.')"><i class="ti ti-plus"></i> Build Standup View</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ HISTORY ══ -->
+    <div class="section" id="tab-history">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+        <div style="font-family:var(--font-display);font-size:15px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--ink)">Analysis History</div>
+        <button class="btn" onclick="clearHistory()"><i class="ti ti-trash"></i> Clear All</button>
+      </div>
+      <div id="history-list">
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--rlg);padding:2rem;text-align:center;font-size:13px;color:var(--text3);font-family:var(--font-body)">No saved analyses yet. Run an analysis and choose to save it.</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+</div>
+<div id="toast"></div>
+
+<script>
+document.getElementById('live-date').textContent=new Date().toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric'});
+
+const TABS=['analysis','upload','standup','history'];
+const TITLES={analysis:'Analysis',upload:'Data Upload',standup:'Standups',history:'History'};
+function switchTab(t,btn){
+  TABS.forEach(id=>document.getElementById('tab-'+id).classList.toggle('active',id===t));
+  document.querySelectorAll('.nav-item').forEach(el=>el.classList.remove('active'));
+  if(btn)btn.classList.add('active');
+  else document.querySelectorAll('.nav-item')[TABS.indexOf(t)]?.classList.add('active');
+  document.getElementById('page-title').textContent=TITLES[t]||t;
+  closeExportMenu();
+}
+function updateCharCount(){document.getElementById('char-count').textContent=document.getElementById('analysis-input').value.length+' chars';}
+function setPrompt(t){const ta=document.getElementById('analysis-input');ta.value=t;ta.focus();updateCharCount();}
+function setUploadPrompt(t){document.getElementById('upload-instructions').value=t;document.getElementById('upload-instructions').focus();}
+
+// ── History ──
+let analysisHistory=JSON.parse(localStorage.getItem('marcs-history')||'[]');
+let pendingEntry=null;
+updateHistoryBadge();renderHistory();
+
+function updateHistoryBadge(){const b=document.getElementById('history-badge');if(analysisHistory.length>0){b.style.display='';b.textContent=analysisHistory.length;}else b.style.display='none';}
+function showSaveBanner(entry){pendingEntry=entry;document.getElementById('save-banner').classList.add('show');}
+function confirmSave(){
+  if(!pendingEntry)return;
+  analysisHistory.unshift(pendingEntry);
+  if(analysisHistory.length>50)analysisHistory=analysisHistory.slice(0,50);
+  localStorage.setItem('marcs-history',JSON.stringify(analysisHistory));
+  updateHistoryBadge();renderHistory();
+  logToNotion(pendingEntry);
+  pendingEntry=null;
+  document.getElementById('save-banner').classList.remove('show');
+  toast('Saved to history & Notion ✓');
+}
+function dismissSave(){pendingEntry=null;document.getElementById('save-banner').classList.remove('show');toast('Dismissed — not saved');}
+function clearHistory(){if(!confirm('Clear all history?'))return;analysisHistory=[];localStorage.removeItem('marcs-history');updateHistoryBadge();renderHistory();toast('History cleared');}
+function renderHistory(){
+  const el=document.getElementById('history-list');
+  if(!analysisHistory.length){el.innerHTML='<div style="background:var(--card);border:1px solid var(--border);border-radius:var(--rlg);padding:2rem;text-align:center;font-size:13px;color:var(--text3);font-family:var(--font-body)">No saved analyses yet.</div>';return;}
+  el.innerHTML=analysisHistory.map((h,i)=>`
+    <div class="history-entry">
+      <div class="history-entry-header" onclick="toggleHistory(${i})">
+        <div>
+          <div class="history-entry-title">${h.title}</div>
+          <div class="history-entry-meta">
+            <span>${h.date}</span><span>${h.source||'Manual'}</span>
+            ${h.notionUrl?`<a href="${h.notionUrl}" target="_blank" style="color:var(--gold);text-decoration:none">↗ Notion</a>`:''}
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <button class="btn" style="padding:4px 10px;font-size:9px" onclick="event.stopPropagation();restoreAnalysis(${i})"><i class="ti ti-arrow-back-up"></i> Restore</button>
+          <button class="btn" style="padding:4px 10px;font-size:9px" onclick="event.stopPropagation();exportHistoryEntry(${i})"><i class="ti ti-download"></i> Export</button>
+          <i class="ti ti-chevron-down" style="color:var(--text3);font-size:15px" id="hist-icon-${i}"></i>
+        </div>
+      </div>
+      <div class="history-entry-body" id="hist-body-${i}">
+        <div class="history-entry-text">${h.text}</div>
+      </div>
+    </div>`).join('');
+}
+function toggleHistory(i){const b=document.getElementById('hist-body-'+i);const ic=document.getElementById('hist-icon-'+i);b.classList.toggle('open');ic.className=b.classList.contains('open')?'ti ti-chevron-up':'ti ti-chevron-down';ic.style.cssText='color:var(--text3);font-size:15px';}
+function restoreAnalysis(i){
+  const h=analysisHistory[i];
+  document.getElementById('findings-display').textContent=h.text;
+  document.getElementById('followup-area').style.display='';
+  currentAnalysisContext=h.text;currentCharts=h.charts||[];
+  document.getElementById('analysis-source-label').textContent=h.source?'Source: '+h.source:'';
+  if(currentCharts.length)renderDynamicCharts(currentCharts,h.title);
+  switchTab('analysis');toast('Analysis restored');
+}
+function exportHistoryEntry(i){
+  const h=analysisHistory[i];
+  pendingExport={title:h.title,text:h.text,notes:'',date:h.date,charts:h.charts||[]};
+  toggleExportMenu();
+}
+
+// ── Notion ──
+async function logToNotion(entry){
+  const indicator=document.getElementById('notion-indicator');
+  try{
+    if(indicator){indicator.style.display='';indicator.textContent='⬆ Saving to Notion…';indicator.style.color='#d97706';}
+    const res=await fetch('/api/notion',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({title:entry.title,findings:entry.text,sourceFile:entry.source||'',
+        type:entry.source&&entry.source!=='Manual query'?'File Upload':'Manual Query',
+        notes:document.getElementById('marc-notes')?.value||'',date:new Date().toISOString().split('T')[0]})
+    });
+    const data=await res.json();
+    if(data.success){
+      if(indicator){indicator.textContent='✓ Saved to Notion';indicator.style.color='var(--sage)';}
+      if(analysisHistory.length>0){analysisHistory[0].notionUrl=data.url;localStorage.setItem('marcs-history',JSON.stringify(analysisHistory));renderHistory();}
+      setTimeout(()=>{if(indicator)indicator.style.display='none';},4000);
+    }else{if(indicator){indicator.textContent='Notion: '+(data.error||'error');indicator.style.color='var(--rust)';}}
+  }catch(e){if(indicator){indicator.textContent='Notion offline';indicator.style.color='var(--text3)';}}
+}
+
+// ── Claude API ──
+async function callClaude(prompt,data=null){
+  const res=await fetch('/api/analyze',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt,data})});
+  if(!res.ok){const err=await res.json().catch(()=>({error:'Server error'}));throw new Error(err.error||'API error');}
+  return await res.json();
+}
+
+// ── Dynamic charts ──
+let dynamicChartInstances=[];
+const CM={red:'#C45C3A',amber:'#d97706',blue:'#3B6CB7',green:'#4A7C59',gold:'#C9A84C',slate:'#4A5568',multi:['#C9A84C','#C45C3A','#4A7C59','#3B6CB7','#7c3aed','#d97706','#2A9D8F','#E76F51']};
+
+function renderDynamicCharts(charts,label=''){
+  dynamicChartInstances.forEach(c=>c.destroy());dynamicChartInstances=[];
+  const area=document.getElementById('dynamic-charts');
+  if(!charts||charts.length===0){area.innerHTML='<div style="background:var(--card);border:1px solid var(--border);border-radius:var(--rlg);padding:2.5rem;text-align:center;color:var(--text3);font-family:var(--font-mono);font-size:10px;text-transform:uppercase;letter-spacing:.06em">Upload a file or run an analysis — charts will appear here</div>';return;}
+  const gridClass=charts.length===1?'chart-grid single':'chart-grid';
+  const sl=label?`<div class="chart-section-label">Charts — ${label}</div>`:'';
+  area.innerHTML=sl+`<div class="${gridClass}">`+charts.map((_,i)=>`<div class="chart-card"><div class="chart-card-title" id="ct-${i}"></div><div style="position:relative;height:${charts.length===1?'340px':'300px'}"><canvas id="dc-${i}"></canvas></div><div class="legend" id="cl-${i}"></div></div>`).join('')+'</div>';
+  charts.forEach((c,i)=>{
+    document.getElementById('ct-'+i).textContent=c.title||'';
+    const ctx=document.getElementById('dc-'+i);if(!ctx)return;
+    const isH=c.type==='horizontalBar';
+    const datasets=c.datasets.map(ds=>{
+      let bg=ds.color==='multi'?c.labels.map((_,li)=>CM.multi[li%CM.multi.length]):(CM[ds.color]||CM.gold);
+      return{label:ds.label||'',data:ds.data,backgroundColor:bg,borderRadius:2,borderWidth:0};
+    });
+    const inst=new Chart(ctx,{
+      type:c.type==='line'?'line':c.type==='donut'?'doughnut':'bar',
+      data:{labels:c.labels,datasets},
+      options:{indexAxis:isH?'y':'x',responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{display:false},tooltip:{callbacks:{label:x=>' '+(typeof x.raw==='number'&&x.raw>999?x.raw.toLocaleString():x.raw)}}},
+        scales:c.type==='donut'?{}:{
+          x:{grid:{color:'rgba(10,10,15,0.04)'},ticks:{font:{size:9,family:'JetBrains Mono'},maxRotation:isH?0:40,callback:v=>typeof v==='number'&&v>999?(v/1000).toFixed(0)+'K':v}},
+          y:{grid:{color:'rgba(10,10,15,0.04)'},ticks:{font:{size:9,family:'JetBrains Mono'},callback:v=>typeof v==='number'&&v>999?(v/1000).toFixed(0)+'K':v}}
+        }
+      }
+    });
+    dynamicChartInstances.push(inst);
+    if(datasets.length>1)document.getElementById('cl-'+i).innerHTML=datasets.map(ds=>`<span class="legend-item"><span class="legend-swatch" style="background:${Array.isArray(ds.backgroundColor)?ds.backgroundColor[0]:ds.backgroundColor}"></span>${ds.label}</span>`).join('');
+  });
+}
+
+// ── State ──
+let currentAnalysisContext='';let currentCharts=[];let pendingExport=null;
+
+// ── Run analysis ──
+async function runAnalysis(){
+  const val=document.getElementById('analysis-input').value.trim();
+  if(!val){toast('Enter a prompt first');return;}
+  const notes=document.getElementById('marc-notes').value.trim();
+  const btn=document.getElementById('run-btn');
+  const box=document.getElementById('findings-display');
+  btn.disabled=true;btn.innerHTML='<span class="spinner"></span> Analyzing…';
+  box.textContent='Analyzing…';
+  document.getElementById('save-banner').classList.remove('show');
+  try{
+    const result=await callClaude(val+(notes?'\n\nContext:\n'+notes:''));
+    box.textContent=result.text;
+    currentAnalysisContext=result.text;currentCharts=result.charts||[];
+    renderDynamicCharts(currentCharts,val.slice(0,50));
+    document.getElementById('followup-area').style.display='';
+    document.getElementById('analysis-source-label').textContent='';
+    const today=new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+    const entry={title:val.slice(0,70)+(val.length>70?'…':''),date:today,text:result.text,source:'Manual query',charts:currentCharts};
+    pendingExport=entry;
+    showSaveBanner(entry);
+    toast('Analysis complete — save?');
+  }catch(e){box.textContent='Error: '+e.message;toast('Error — check API config');}
+  finally{btn.disabled=false;btn.innerHTML='<i class="ti ti-player-play"></i> Run Analysis';}
+}
+
+// ── Follow-up ──
+async function runFollowUp(){
+  const val=document.getElementById('followup-input').value.trim();
+  if(!val){toast('Enter a follow-up');return;}
+  const btn=document.getElementById('followup-btn');
+  const box=document.getElementById('findings-display');
+  btn.disabled=true;btn.innerHTML='<span class="spinner"></span>';
+  try{
+    const result=await callClaude(`Previous analysis:\n${currentAnalysisContext}\n\nFollow-up: ${val}\n\nAppend new findings and generate updated charts for this follow-up.`);
+    const sep='\n\n── FOLLOW-UP: '+val.slice(0,60)+' ──\n\n';
+    const appended=box.textContent+sep+result.text;
+    box.textContent=appended;
+    currentAnalysisContext=appended;
+    if(result.charts&&result.charts.length>0){currentCharts=result.charts;renderDynamicCharts(result.charts,val.slice(0,50));}
+    document.getElementById('followup-input').value='';
+    const today=new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+    const entry={title:val.slice(0,70)+(val.length>70?'…':''),date:today,text:appended,source:'Follow-up',charts:currentCharts};
+    pendingExport=entry;
+    showSaveBanner(entry);
+    toast('Follow-up appended — save?');
+  }catch(e){toast('Error: '+e.message);}
+  finally{btn.disabled=false;btn.innerHTML='<i class="ti ti-send"></i> Send';}
+}
+
+function clearFindings(){
+  document.getElementById('findings-display').textContent='Run an analysis or upload a file to see findings here.';
+  document.getElementById('followup-area').style.display='none';
+  document.getElementById('save-banner').classList.remove('show');
+  document.getElementById('analysis-source-label').textContent='';
+  currentAnalysisContext='';currentCharts=[];pendingExport=null;
+  renderDynamicCharts([]);
+}
+
+// ── Upload ──
+let uploadedFile=null,uploadedFileData=null;
+function handleDrag(e){e.preventDefault();document.getElementById('upload-zone').classList.add('drag');}
+function handleDragLeave(){document.getElementById('upload-zone').classList.remove('drag');}
+function handleDrop(e){e.preventDefault();document.getElementById('upload-zone').classList.remove('drag');const f=e.dataTransfer.files[0];if(f)processFile(f);}
+function handleFile(e){const f=e.target.files[0];if(f)processFile(f);}
+function processFile(file){
+  uploadedFile=file;
+  document.getElementById('upload-filename').textContent=file.name+' — '+(file.size/1024).toFixed(1)+' KB';
+  document.getElementById('upload-badge').classList.add('show');
+  document.getElementById('file-status').textContent=file.name+' ready';
+  toast('File loaded: '+file.name);
+  const reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'});
+      let csv='';wb.SheetNames.slice(0,3).forEach(n=>{csv+='Sheet: '+n+'\n'+XLSX.utils.sheet_to_csv(wb.Sheets[n]).split('\n').slice(0,100).join('\n')+'\n\n';});
+      uploadedFileData=csv;
+    }catch(err){uploadedFileData='Could not parse: '+err.message;}
+  };
+  reader.readAsArrayBuffer(file);
+}
+async function runUploadAnalysis(){
+  if(!uploadedFile){toast('Upload a file first');return;}
+  if(!uploadedFileData){toast('File still loading…');return;}
+  const instr=document.getElementById('upload-instructions').value.trim();
+  if(!instr){toast('Add instructions first');return;}
+  const btn=document.getElementById('upload-run-btn');
+  btn.disabled=true;btn.innerHTML='<span class="spinner"></span> Analyzing…';
+  document.getElementById('findings-display').textContent='Analyzing '+uploadedFile.name+'…';
+  document.getElementById('analysis-source-label').textContent='Source: '+uploadedFile.name;
+  document.getElementById('save-banner').classList.remove('show');
+  try{
+    const result=await callClaude(instr,uploadedFileData);
+    document.getElementById('findings-display').textContent=result.text;
+    currentAnalysisContext=result.text;currentCharts=result.charts||[];
+    renderDynamicCharts(currentCharts,uploadedFile.name);
+    document.getElementById('followup-area').style.display='';
+    document.getElementById('upload-preview-card').style.display='';
+    switchTab('analysis',document.querySelectorAll('.nav-item')[0]);
+    const today=new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+    const entry={title:instr.slice(0,70)+(instr.length>70?'…':''),date:today,text:result.text,source:uploadedFile.name,charts:currentCharts};
+    pendingExport=entry;
+    showSaveBanner(entry);
+    toast('Analysis complete — save?');
+  }catch(e){document.getElementById('findings-display').textContent='Error: '+e.message;switchTab('analysis',document.querySelectorAll('.nav-item')[0]);toast('Error');}
+  finally{btn.disabled=false;btn.innerHTML='<i class="ti ti-player-play"></i> Analyze File';}
+}
+
+// ── Notes ──
+function saveNotes(){
+  const notes=document.getElementById('marc-notes').value.trim();
+  if(!notes){toast('Nothing to save');return;}
+  document.getElementById('notes-status').textContent='Saved at '+new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+  toast('Notes saved');
+}
+function pushToStandup(){
+  const findings=document.getElementById('findings-display').textContent;
+  const notes=document.getElementById('marc-notes').value.trim();
+  const content=[findings,notes?'Notes:\n'+notes:''].filter(x=>x&&x!=='Run an analysis or upload a file to see findings here.').join('\n\n');
+  if(!content.trim()){toast('Nothing to push — run an analysis first');return;}
+  document.getElementById('standup-content').textContent=content;
+  document.getElementById('standup-content-card').style.display='';
+  switchTab('standup');toast('Pushed to standup ↗');
+}
+
+function loadSampleFindings(){
+  document.getElementById('m-pings').textContent='3.81M';
+  document.getElementById('m-exp').textContent='1.69M';
+  document.getElementById('m-bids').textContent='455K';
+  document.getElementById('m-missed').textContent='1.24M';
+  document.getElementById('d-pings').textContent='Across all sources';
+  document.getElementById('d-bids').textContent='Only 26.9% of expected';
+  document.getElementById('d-missed').textContent='73.1% of expected lost';
+  document.getElementById('main-alert').style.display='';
+  document.getElementById('alert-title-text').textContent='Active Issue — BF algorithm not enforcing bid frequency settings';
+  document.getElementById('alert-body-text').textContent='Every source with BF > 0 is bidding far below its setting. Platform-level enforcement failure. 1.24M calls missed across 3.8M pings.';
+  const text=`PING ANALYSIS — BF COMPLIANCE REPORT\n\nEXECUTIVE SUMMARY\nThe BF algorithm is not enforcing configured bid frequency settings across any QM source. Across 3.81M pings, only 26.9% of expected bids were placed — 1.24M calls missed.\n\nKEY FINDINGS\n1. SYSTEM-WIDE: 73.1% of expected bids never placed\n2. RATEQ: BF 46% → actual 6.0% | 420,969 missed\n3. ADLNT: BF 78% → actual 8.6% | 174,760 missed (worst rate gap)\n4. WISDO: BF 51% → actual 6.8% | 245,510 missed\n5. SKYLB: only source near compliance (40.4% vs 69% BF)\n\nRECOMMENDED ACTIONS\n• Audit random number generator in Datalot BF JSON control\n• Fix priority: RATEQ → WISDO → ADLNT → SCALA → DIGIP\n• Controlled test: BF=100% on a low-volume source`;
+  document.getElementById('findings-display').textContent=text;
+  document.getElementById('followup-area').style.display='';
+  currentAnalysisContext=text;
+  renderDynamicCharts([{type:'horizontalBar',title:'BF Setting vs Actual Bid Rate',labels:['RATEQ','WISDO','ADLNT','SCALA','DIGIP','INSCO','SKYLB'],datasets:[{label:'BF Setting %',data:[46,51,78,44,43,51,69],color:'slate'},{label:'Actual Rate %',data:[6,6.8,8.6,17.1,9.1,8.4,40.4],color:'red'}]},{type:'bar',title:'Calls Missed by Source (top 7)',labels:['RATEQ','WISDO','ADLNT','SCALA','DIGIP','INSCO','UABIN'],datasets:[{label:'Calls Missed',data:[420969,245510,174760,137597,82607,41077,40692],color:'multi'}]}],'Sample Data');
+  pendingExport={title:'Ping Analysis BF Compliance',text,date:new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}),charts:[]};
+  toast('Sample data loaded');
+}
+
+// ── Export ──
+function toggleExportMenu(){
+  const menu=document.getElementById('export-menu');
+  menu.classList.toggle('open');
+}
+function closeExportMenu(){document.getElementById('export-menu').classList.remove('open');}
+document.addEventListener('click',function(e){if(!document.getElementById('export-wrap').contains(e.target))closeExportMenu();});
+
+function doExport(format){
+  closeExportMenu();
+  const findings=document.getElementById('findings-display').textContent||'No findings yet.';
+  const notes=document.getElementById('marc-notes').value||'';
+  const title=pendingExport?.title||'Marc\'s Dash Analysis';
+  const date=new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+
+  if(format==='csv'){
+    exportCSV(title,findings,notes,date);
+  } else if(format==='xlsx'){
+    exportXLSX(title,findings,notes,date);
+  } else if(format==='pdf'){
+    exportPDF(title,findings,notes,date);
+  } else if(format==='pptx'){
+    exportPPTX(title,findings,notes,date);
+  }
+}
+
+function exportCSV(title,findings,notes,date){
+  const rows=[['Marc\'s Dash — Analysis Export'],['Title',title],['Date',date],[''],['Findings'],findings.split('\n').map(l=>[l]),[''],['Notes'],notes.split('\n').map(l=>[l])];
+  let csv='';
+  rows.forEach(r=>{if(Array.isArray(r[0])&&Array.isArray(r[0])){r.forEach(inner=>{csv+='"'+inner[0].replace(/"/g,'""')+'"\n';});}else{csv+=r.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(',')+'\n';}});
+  const blob=new Blob([csv],{type:'text/csv'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=title.replace(/[^a-z0-9]/gi,'_')+'_'+date.replace(/[^a-z0-9]/gi,'_')+'.csv';a.click();
+  toast('CSV exported');
+}
+
+function exportXLSX(title,findings,notes,date){
+  const wb=XLSX.utils.book_new();
+  const summaryData=[['Marc\'s Dash — Analysis Export'],[''],['Title',title],['Date',date],[''],['FINDINGS'],[''],...findings.split('\n').map(l=>[l]),[''],['NOTES'],[''],...(notes?notes.split('\n').map(l=>[l]):[['No notes']])];
+  const ws=XLSX.utils.aoa_to_sheet(summaryData);
+  ws['!cols']=[{wch:120}];
+  XLSX.utils.book_append_sheet(wb,ws,'Analysis');
+  XLSX.writeFile(wb,title.replace(/[^a-z0-9]/gi,'_')+'_'+date.replace(/,\s*/g,'_').replace(/\s+/g,'_')+'.xlsx');
+  toast('Excel exported');
+}
+
+function exportPDF(title,findings,notes,date){
+  const printWin=window.open('','_blank');
+  printWin.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${title}</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Georgia',serif;font-size:13px;line-height:1.8;color:#111;padding:48px 56px;max-width:800px;margin:0 auto}
+    .header{border-bottom:3px solid #C9A84C;padding-bottom:20px;margin-bottom:28px}
+    .header-top{display:flex;justify-content:space-between;align-items:flex-end}
+    .dash-name{font-family:'Arial',sans-serif;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:3px;color:#888}
+    .doc-date{font-family:'Courier New',monospace;font-size:10px;color:#888}
+    h1{font-family:'Arial',sans-serif;font-size:22px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#0A0A0F;margin-top:8px}
+    .section-label{font-family:'Courier New',monospace;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#C9A84C;margin:28px 0 10px;padding-bottom:6px;border-bottom:1px solid #e8e6de}
+    .findings{white-space:pre-wrap;font-size:13px;line-height:1.85;color:#222}
+    .notes{background:#f8f7f2;border-left:3px solid #C9A84C;padding:12px 16px;margin-top:10px;white-space:pre-wrap;font-size:12px;color:#444}
+    .footer{margin-top:48px;padding-top:14px;border-top:1px solid #ddd;display:flex;justify-content:space-between;font-family:'Courier New',monospace;font-size:9px;color:#aaa}
+  </style></head><body>
+  <div class="header"><div class="header-top"><span class="dash-name">Marc's Dash · Centerfield Media</span><span class="doc-date">${date}</span></div><h1>${title}</h1></div>
+  <div class="section-label">Findings &amp; Takeaways</div>
+  <div class="findings">${findings.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
+  ${notes?`<div class="section-label">Notes &amp; Commentary</div><div class="notes">${notes.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>`:''}
+  <div class="footer"><span>Marc's Dash · marcs-dash.vercel.app</span><span>Generated ${date}</span></div>
+  </body></html>`);
+  printWin.document.close();
+  setTimeout(()=>{printWin.print();},600);
+  toast('PDF ready to print/save');
+}
+
+function exportPPTX(title,findings,notes,date){
+  // Build a clean PPT-style HTML that opens in a new window formatted as slides
+  const lines=findings.split('\n').filter(l=>l.trim());
+  const execSummary=lines.slice(0,3).join('\n');
+  const keyFindings=lines.filter(l=>l.match(/^\d+\./)).slice(0,6);
+  const actions=lines.filter(l=>l.match(/^[•\-]/)).slice(0,5);
+
+  const printWin=window.open('','_blank');
+  printWin.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${title} — Slides</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Arial',sans-serif;background:#1a1a1a;padding:20px}
+    .slide{width:900px;height:506px;background:#0A0A0F;margin:0 auto 20px;border-radius:8px;position:relative;overflow:hidden;page-break-after:always;display:flex;flex-direction:column;justify-content:center;padding:56px 64px}
+    .slide::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;background:linear-gradient(90deg,#C9A84C,transparent)}
+    .slide-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.15em;color:#C9A84C;margin-bottom:16px}
+    .slide-title{font-size:32px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#fff;line-height:1.1;margin-bottom:24px}
+    .slide-body{font-size:14px;color:rgba(255,255,255,.75);line-height:1.7}
+    .slide-body li{margin-bottom:10px;list-style:none;padding-left:16px;position:relative}
+    .slide-body li::before{content:'—';position:absolute;left:0;color:#C9A84C}
+    .slide-footer{position:absolute;bottom:20px;right:28px;font-size:9px;color:rgba(255,255,255,.25);text-transform:uppercase;letter-spacing:.1em}
+    .slide-num{position:absolute;bottom:20px;left:28px;font-size:9px;color:rgba(255,255,255,.25)}
+    .slide.light{background:#F8F7F2}
+    .slide.light .slide-title{color:#0A0A0F}
+    .slide.light .slide-body{color:#3A3A4A}
+    .slide.light .slide-body li::before{color:#C9A84C}
+    .slide.light .slide-footer,.slide.light .slide-num{color:rgba(0,0,0,.25)}
+    @media print{body{background:#fff;padding:0}.slide{margin-bottom:0;border-radius:0}}
+  </style></head><body>
+  <div class="slide"><div class="slide-label">Marc's Dash · Centerfield Media · ${date}</div><div class="slide-title">${title}</div><div class="slide-body">QM Media Analytics Report</div><div class="slide-footer">Marc's Dash</div><div class="slide-num">1</div></div>
+  <div class="slide light"><div class="slide-label">Executive Summary</div><div class="slide-title">Overview</div><div class="slide-body"><ul>${execSummary.split('\n').map(l=>`<li>${l.replace(/</g,'&lt;')}</li>`).join('')}</ul></div><div class="slide-footer">Marc's Dash</div><div class="slide-num">2</div></div>
+  <div class="slide"><div class="slide-label">Key Findings</div><div class="slide-title">What the data shows</div><div class="slide-body"><ul>${keyFindings.map(l=>`<li>${l.replace(/^\d+\.\s*/,'').replace(/</g,'&lt;')}</li>`).join('')}</ul></div><div class="slide-footer">Marc's Dash</div><div class="slide-num">3</div></div>
+  ${actions.length?`<div class="slide light"><div class="slide-label">Recommended Actions</div><div class="slide-title">Next Steps</div><div class="slide-body"><ul>${actions.map(l=>`<li>${l.replace(/^[•\-]\s*/,'').replace(/</g,'&lt;')}</li>`).join('')}</ul></div><div class="slide-footer">Marc's Dash</div><div class="slide-num">4</div></div>`:''}
+  ${notes?`<div class="slide"><div class="slide-label">Notes &amp; Commentary</div><div class="slide-title">Additional Context</div><div class="slide-body">${notes.replace(/</g,'&lt;')}</div><div class="slide-footer">Marc's Dash</div><div class="slide-num">5</div></div>`:''}
+  <script>setTimeout(()=>window.print(),500)<\/script>
+  </body></html>`);
+  printWin.document.close();
+  toast('PPT slides ready — print to save as PDF');
+}
+
+function toast(msg){const el=document.getElementById('toast');el.textContent=msg;el.classList.add('show');setTimeout(()=>el.classList.remove('show'),2500);}
+
+document.addEventListener('DOMContentLoaded',()=>{
+  // Preload KPI placeholder state
+  document.getElementById('m-pings').textContent='—';
+});
+</script>
+</body>
+</html>
