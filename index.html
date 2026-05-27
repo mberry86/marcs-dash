@@ -565,16 +565,32 @@ async function callClaude(prompt,data=null){
 let dynamicChartInstances=[];
 const CM={red:'var(--dl-red)',amber:'#d97706',blue:'#29b6d8',green:'var(--dl-green)',gold:'var(--dl-cyan)',slate:'#888888',multi:['var(--dl-cyan)','var(--dl-red)','var(--dl-green)','#29b6d8','#7c3aed','#d97706','#2A9D8F','#E76F51']};
 
-function renderDynamicCharts(charts,label=''){
-  dynamicChartInstances.forEach(c=>c.destroy());dynamicChartInstances=[];
+function renderDynamicCharts(charts,label='',append=false){
   const area=document.getElementById('dynamic-charts');
-  if(!charts||charts.length===0){area.innerHTML='<div style="background:var(--dl-card);border:1px solid var(--dl-border);border-radius:var(--dl-radius-lg);padding:2.5rem;text-align:center;color:var(--dl-text-3);font-family:var(--dl-font-mono);font-size:10px;text-transform:uppercase;letter-spacing:.06em">Upload a file or run an analysis — charts will appear here</div>';return;}
+  if(!charts||charts.length===0){
+    if(!append){
+      dynamicChartInstances.forEach(c=>c.destroy());dynamicChartInstances=[];
+      area.innerHTML='<div style="background:var(--dl-card);border:1px solid var(--dl-border);border-radius:var(--dl-radius-lg);padding:2.5rem;text-align:center;color:var(--dl-text-3);font-family:var(--dl-font-mono);font-size:10px;text-transform:uppercase;letter-spacing:.06em">Upload a file or run an analysis — charts will appear here</div>';
+    }
+    return;
+  }
+  // Generate unique prefix so IDs don't collide across appended sections
+  const prefix='c'+(Date.now()%99999);
   const gridClass=charts.length===1?'chart-grid single':'chart-grid';
   const sl=label?`<div class="chart-section-label">Charts — ${label}</div>`:'';
-  area.innerHTML=sl+`<div class="${gridClass}">`+charts.map((_,i)=>`<div class="chart-card"><div class="chart-card-title" id="ct-${i}"></div><div style="position:relative;height:${charts.length===1?'340px':'300px'}"><canvas id="dc-${i}"></canvas></div><div class="legend" id="cl-${i}"></div></div>`).join('')+'</div>';
+  const newBlock=sl+`<div class="${gridClass}">`+charts.map((_,i)=>`<div class="chart-card"><div class="chart-card-title" id="${prefix}-ct-${i}"></div><div style="position:relative;height:${charts.length===1?'340px':'300px'}"><canvas id="${prefix}-dc-${i}"></canvas></div><div class="legend" id="${prefix}-cl-${i}"></div></div>`).join('')+'</div>';
+  if(append){
+    // Remove placeholder if present
+    const ph=area.querySelector('div[style*="Upload a file"]');
+    if(ph)ph.remove();
+    area.insertAdjacentHTML('beforeend',newBlock);
+  } else {
+    dynamicChartInstances.forEach(c=>c.destroy());dynamicChartInstances=[];
+    area.innerHTML=newBlock;
+  }
   charts.forEach((c,i)=>{
-    document.getElementById('ct-'+i).textContent=c.title||'';
-    const ctx=document.getElementById('dc-'+i);if(!ctx)return;
+    document.getElementById(`${prefix}-ct-`+i).textContent=c.title||'';
+    const ctx=document.getElementById(`${prefix}-dc-`+i);if(!ctx)return;
     const isH=c.type==='horizontalBar';
     const datasets=c.datasets.map(ds=>{
       let bg=ds.color==='multi'?c.labels.map((_,li)=>CM.multi[li%CM.multi.length]):(CM[ds.color]||CM.gold);
@@ -592,7 +608,7 @@ function renderDynamicCharts(charts,label=''){
       }
     });
     dynamicChartInstances.push(inst);
-    if(datasets.length>1)document.getElementById('cl-'+i).innerHTML=datasets.map(ds=>`<span class="legend-item"><span class="legend-swatch" style="background:${Array.isArray(ds.backgroundColor)?ds.backgroundColor[0]:ds.backgroundColor}"></span>${ds.label}</span>`).join('');
+    if(datasets.length>1)document.getElementById(`${prefix}-cl-`+i).innerHTML=datasets.map(ds=>`<span class="legend-item"><span class="legend-swatch" style="background:${Array.isArray(ds.backgroundColor)?ds.backgroundColor[0]:ds.backgroundColor}"></span>${ds.label}</span>`).join('');
   });
 }
 
@@ -638,7 +654,10 @@ async function runFollowUp(){
     const appended=box.textContent+sep+result.text;
     box.textContent=appended;
     currentAnalysisContext=appended;
-    if(result.charts&&result.charts.length>0){currentCharts=result.charts;renderDynamicCharts(result.charts,val.slice(0,50));}
+    if(result.charts&&result.charts.length>0){
+      currentCharts=[...currentCharts,...result.charts];
+      renderDynamicCharts(result.charts,val.slice(0,60),true);  // append=true
+    }
     document.getElementById('followup-input').value='';
     const today=new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
     const entry={title:val.slice(0,70)+(val.length>70?'…':''),date:today,text:appended,source:'Follow-up',charts:currentCharts};
@@ -655,7 +674,8 @@ function clearFindings(){
   document.getElementById('save-banner').classList.remove('show');
   document.getElementById('analysis-source-label').textContent='';
   currentAnalysisContext='';currentCharts=[];pendingExport=null;
-  renderDynamicCharts([]);
+  dynamicChartInstances.forEach(c=>c.destroy());dynamicChartInstances=[];
+  document.getElementById('dynamic-charts').innerHTML='<div style="background:var(--dl-card);border:1px solid var(--dl-border);border-radius:var(--dl-radius-lg);padding:2.5rem;text-align:center;color:var(--dl-text-3);font-family:var(--dl-font-mono);font-size:10px;text-transform:uppercase;letter-spacing:.06em">Upload a file or run an analysis — charts will appear here</div>';
 }
 
 // ── Upload ──
