@@ -592,8 +592,21 @@ function renderDynamicCharts(charts,label='',append=false){
     document.getElementById(`${prefix}-ct-`+i).textContent=c.title||'';
     const ctx=document.getElementById(`${prefix}-dc-`+i);if(!ctx)return;
     const isH=c.type==='horizontalBar';
-    const datasets=c.datasets.map(ds=>{
-      let bg=ds.color==='multi'?c.labels.map((_,li)=>CM.multi[li%CM.multi.length]):(CM[ds.color]||CM.gold);
+    const datasets=c.datasets.map((ds,di)=>{
+      let bg;
+      if(ds.color==='multi'){
+        // Each bar gets a different color from the palette
+        bg=c.labels.map((_,li)=>CM.multi[li%CM.multi.length]);
+      } else if(CM[ds.color]){
+        // Named color — single solid color for all bars in this dataset
+        bg=CM[ds.color];
+      } else if(ds.color&&ds.color.startsWith('#')){
+        // Raw hex passed directly
+        bg=ds.color;
+      } else {
+        // Fallback: if multiple datasets, pick from palette by dataset index
+        bg=c.datasets.length>1?CM.multi[di%CM.multi.length]:CM.cyan;
+      }
       return{label:ds.label||'',data:ds.data,backgroundColor:bg,borderRadius:2,borderWidth:0};
     });
     const inst=new Chart(ctx,{
